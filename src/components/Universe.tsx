@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * 善意星系的 3D 世界（核心元件，常駐於 root layout，整個網站只建立一次）
+ * 探索者計畫的 3D 星圖（核心元件，常駐於 root layout，整個網站只建立一次）
  *
- * - 主星：一顆 low poly 星球，北極是太空港
- * - 每位同學在地表上有一座城市；太空港到每座城市都有航線，接駁船來回飛
+ * - 主星：夜空中的發光星圖，深色球體上有經緯線與點陣，北極是太空港
+ * - 每位同學在地表上有一座城市，從軌道看是一個代表色的光點；太空港到每座城市都有發光航線，接駁船來回飛
  * - 首頁：繞著星球俯瞰，可拖曳旋轉
  * - /cities/<id>/：鏡頭沿著星球表面的弧線飛進城市，停在穿梭機的站點
  * - 換站、換城市都只移動鏡頭，網頁不重新載入
@@ -13,11 +13,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { cityModels } from '@/generated/cityModels';
 import { shuttle } from '@/kit/shuttle';
 import { buildDefaultCity } from '@/lib/defaultCity';
 import type { CityFactory, CityMeta } from '@/lib/types';
-import { hash, MAX_HEIGHT, PALETTE, PLANET_RADIUS as R, PLOT_RADIUS, plotDirection, seeded } from '@/lib/world';
+import { hash, MAX_HEIGHT, PLANET_RADIUS as R, PLOT_RADIUS, plotDirection, seeded } from '@/lib/world';
 import styles from './Universe.module.css';
 
 export interface CityData {
@@ -26,7 +29,7 @@ export interface CityData {
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
-const TERRAIN = ['#9ee6a8', '#7bd389', '#b8f0c0', '#c9f5b5', '#ffe08a', '#8fd8e8', '#a7e8c4'];
+const NIGHT = { body: '#050a18', grid: '#4f8fd6', dot: '#8fc4ff', air: '#4a9dff', frame: '#cfe6ff', fill: '#0a1226', dust: '#9fc7ff' };
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
 function skyTexture() {
@@ -35,14 +38,43 @@ function skyTexture() {
   cv.height = 512;
   const g = cv.getContext('2d')!;
   const grad = g.createLinearGradient(0, 0, 0, 512);
-  grad.addColorStop(0, '#9fdcff');
-  grad.addColorStop(0.55, '#ffe3f0');
-  grad.addColorStop(1, '#fff3d1');
+  grad.addColorStop(0, '#0b1f4a');
+  grad.addColorStop(0.55, '#050d24');
+  grad.addColorStop(1, '#000000');
   g.fillStyle = grad;
   g.fillRect(0, 0, 4, 512);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+/** 中心亮、邊緣透明的圓點：星塵與城市光暈共用 */
+function softDotTexture() {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 64;
+  const g = cv.getContext('2d')!;
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.3, 'rgba(255,255,255,0.35)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/** 發光線框：深色實體遮住背後的東西，邊線用疊加混色發光 */
+function glowFrame(geo: THREE.BufferGeometry, color: THREE.ColorRepresentation) {
+  const group = new THREE.Group();
+  group.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: NIGHT.fill, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 })));
+  group.add(
+    new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo, 20),
+      new THREE.LineBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }),
+    ),
+  );
+  return group;
 }
 
 /** 執行同學的 City.ts；太大時等比縮小。出錯回傳 null，改用預設城市。 */
@@ -74,7 +106,9 @@ interface CityRuntime {
   anchor: THREE.Object3D;
   normal: THREE.Vector3;
   update?: (t: number, dt: number, info: { visited: boolean; scene: number | null }) => void;
-  routeMat: THREE.LineDashedMaterial;
+  routeMat: LineMaterial;
+  routeGlow: Line2;
+  halo: THREE.Sprite;
   ship: THREE.Object3D;
   routePoint: (t: number, out: THREE.Vector3) => THREE.Vector3;
 }
@@ -133,44 +167,88 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
     const scene = new THREE.Scene();
     const skyTex = skyTexture();
     scene.background = skyTex;
-    const fog = new THREE.Fog(0xffe9f2, 2000, 7000);
+    const softDot = softDotTexture();
+    const fog = new THREE.Fog(0x030816, 2000, 7000);
     scene.fog = fog;
     const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 20000);
     const rand = seeded(20261030);
     const animated: ((t: number, dt: number) => void)[] = [];
 
+    // 燈光強度不要調暗：同學的 City.ts 多半用受光材質，夜色由星球與天空負責
     scene.add(new THREE.HemisphereLight(0xd8f1ff, 0xffd3e6, 1.7));
     const sun = new THREE.DirectionalLight(0xffffff, 1.7);
     sun.position.set(1.2, 2, 1.4).multiplyScalar(R);
     scene.add(sun);
 
-    const mat = (color: THREE.ColorRepresentation) => new THREE.MeshLambertMaterial({ color, flatShading: true });
-
-    // ── 主星：每個面一種草地色的多面體 ─────────────────
-    const planetGeo = new THREE.IcosahedronGeometry(R, 5);
+    // ── 主星：深色球體＋發光的經緯線與點陣 ─────────────
+    // 經緯線與點陣都低於半徑 R（地塊頂面的高度），才不會穿過城市地面
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(R - 3, 96, 64), new THREE.MeshBasicMaterial({ color: NIGHT.body })));
     {
-      const cols: number[] = [];
-      const c = new THREE.Color();
-      for (let f = 0; f < planetGeo.attributes.position.count / 3; f++) {
-        c.set(TERRAIN[Math.floor(rand() * TERRAIN.length)]);
-        for (let v = 0; v < 3; v++) cols.push(c.r, c.g, c.b);
+      const STEP = THREE.MathUtils.degToRad(3);
+      const at = (lat: number, lon: number) => [Math.cos(lat) * Math.cos(lon) * (R - 1), Math.sin(lat) * (R - 1), Math.cos(lat) * Math.sin(lon) * (R - 1)];
+      const grid: number[] = [];
+      for (let d = -75; d <= 75; d += 15) {
+        const lat = THREE.MathUtils.degToRad(d);
+        for (let lon = 0; lon < Math.PI * 2 - 1e-6; lon += STEP) grid.push(...at(lat, lon), ...at(lat, lon + STEP));
       }
-      planetGeo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+      for (let d = 0; d < 360; d += 15) {
+        const lon = THREE.MathUtils.degToRad(d);
+        for (let lat = -Math.PI / 2; lat < Math.PI / 2 - 1e-6; lat += STEP) grid.push(...at(lat, lon), ...at(lat + STEP, lon));
+      }
+      const gridGeo = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(grid, 3));
+      const gridMat = new THREE.LineBasicMaterial({ color: NIGHT.grid, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false });
+      scene.add(new THREE.LineSegments(gridGeo, gridMat));
+
+      const dots: number[] = [];
+      const DOTS = 6000;
+      const golden = Math.PI * (3 - Math.sqrt(5));
+      for (let i = 0; i < DOTS; i++) dots.push(...at(Math.asin(1 - (2 * (i + 0.5)) / DOTS), golden * i));
+      const dotGeo = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(dots, 3));
+      const dotMat = new THREE.PointsMaterial({ color: NIGHT.dot, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false });
+      scene.add(new THREE.Points(dotGeo, dotMat));
     }
-    scene.add(new THREE.Mesh(planetGeo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
+
+    // 大氣光暈：球體外圍往外淡出；鏡頭靠近地表時收掉，才不會把整片天空洗白
+    const air = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: { color: { value: new THREE.Color(NIGHT.air) }, fade: { value: 1 } },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vView;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vNormal = normalMatrix * normal;
+          vView = -mv.xyz;
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `
+        uniform vec3 color;
+        uniform float fade;
+        varying vec3 vNormal;
+        varying vec3 vView;
+        void main() {
+          float d = abs(dot(normalize(vNormal), normalize(vView)));
+          float a = pow(clamp(d / 0.42, 0.0, 1.0), 2.5) * 0.55 * fade;
+          gl_FragColor = vec4(color, a);
+        }`,
+    });
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(R * 1.1, 64, 48), air));
 
     // ── 北極太空港（主星的核心） ───────────────────────
     const port = new THREE.Group();
     port.position.set(0, R - 6, 0);
-    port.add(new THREE.Mesh(new THREE.CylinderGeometry(80, 92, 24, 10), mat('#fff3d1')));
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(10, 16, 120, 6), mat('#ff5d8f'));
+    port.add(glowFrame(new THREE.CylinderGeometry(80, 92, 24, 10), NIGHT.frame));
+    const tower = glowFrame(new THREE.CylinderGeometry(10, 16, 120, 6), NIGHT.frame);
     tower.position.y = 72;
     port.add(tower);
-    const portRing = new THREE.Mesh(new THREE.TorusGeometry(44, 6, 4, 12), mat('#ffb627'));
+    const portRing = glowFrame(new THREE.TorusGeometry(44, 6, 4, 12), NIGHT.frame);
     portRing.rotation.x = Math.PI / 2;
     portRing.position.y = 110;
     port.add(portRing);
-    const beacon = new THREE.Mesh(new THREE.OctahedronGeometry(18), mat('#3ec1d3'));
+    const beacon = glowFrame(new THREE.OctahedronGeometry(18), '#ffffff');
     beacon.position.y = 150;
     port.add(beacon);
     scene.add(port);
@@ -181,50 +259,44 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
       beacon.position.y = 150 + Math.sin(t * 2) * 6;
     });
 
-    // ── 雲與太空中的漂浮物 ─────────────────────────────
-    const sky = new THREE.Group();
-    const cloudMat = mat('#ffffff');
-    for (let i = 0; i < 26; i++) {
-      const cloud = new THREE.Group();
-      for (let k = 0; k < 3; k++) {
-        const puff = new THREE.Mesh(new THREE.DodecahedronGeometry(16 + rand() * 14), cloudMat);
-        puff.position.set((k - 1) * 22, rand() * 8, rand() * 10);
-        cloud.add(puff);
+    // ── 分層星點與星塵 ─────────────────────────────────
+    const scatter = (n: number, rMin: number, rMax: number) => {
+      const pos: number[] = [];
+      const v = new THREE.Vector3();
+      for (let i = 0; i < n; i++) {
+        v.set(rand() - 0.5, rand() - 0.5, rand() - 0.5).normalize().multiplyScalar(rMin + rand() * (rMax - rMin));
+        pos.push(v.x, v.y, v.z);
       }
-      const dir = new THREE.Vector3(rand() - 0.5, rand() - 0.5, rand() - 0.5).normalize();
-      cloud.position.copy(dir).multiplyScalar(R + 260 + rand() * 120);
-      cloud.quaternion.setFromUnitVectors(UP, dir);
-      sky.add(cloud);
-    }
-    const debrisMats = PALETTE.map((c) => mat(c));
-    const shapes = [
-      () => new THREE.TetrahedronGeometry(1),
-      () => new THREE.OctahedronGeometry(1),
-      () => new THREE.BoxGeometry(1.4, 1.4, 1.4),
-      () => new THREE.ConeGeometry(0.9, 1.8, 5),
-      () => new THREE.TorusGeometry(0.9, 0.35, 4, 8),
-    ];
-    const spinners: THREE.Mesh[] = [];
-    for (let i = 0; i < 90; i++) {
-      const m = new THREE.Mesh(shapes[i % shapes.length](), debrisMats[i % debrisMats.length]);
-      const dir = new THREE.Vector3(rand() - 0.5, rand() - 0.5, rand() - 0.5).normalize();
-      m.position.copy(dir).multiplyScalar(R * (1.7 + rand() * 1.4));
-      m.scale.setScalar(10 + rand() * 26);
-      m.rotation.set(rand() * 6, rand() * 6, rand() * 6);
-      sky.add(m);
-      spinners.push(m);
-    }
-    scene.add(sky);
-    animated.push((_t, dt) => {
-      sky.rotation.y += dt * 0.01;
-      spinners.forEach((m, i) => (m.rotation.x += dt * (0.2 + (i % 5) * 0.08)));
+      return new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    };
+    // 三層星點各轉各的速度，移動鏡頭時才有遠近感；半徑要留在鏡頭 far（20000）之內
+    [
+      { n: 1400, size: 1.1, opacity: 0.55, radius: 9000, spin: 0.002 },
+      { n: 500, size: 1.8, opacity: 0.8, radius: 11000, spin: 0.004 },
+      { n: 120, size: 2.8, opacity: 1, radius: 13000, spin: 0.007 },
+    ].forEach(({ n, size, opacity, radius, spin }) => {
+      const stars = new THREE.Points(
+        scatter(n, radius, radius * 1.1),
+        new THREE.PointsMaterial({ color: '#ffffff', size, sizeAttenuation: false, transparent: true, opacity, fog: false, depthWrite: false }),
+      );
+      scene.add(stars);
+      animated.push((_t, dt) => (stars.rotation.y += dt * spin));
+    });
+    const dust = new THREE.Points(
+      scatter(400, R * 1.6, R * 2.6),
+      new THREE.PointsMaterial({ color: NIGHT.dust, map: softDot, size: 40, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    scene.add(dust);
+    animated.push((t, dt) => {
+      dust.rotation.y += dt * 0.012;
+      dust.rotation.x = Math.sin(t * 0.05) * 0.08;
     });
 
     // ── 城市 ───────────────────────────────────────────
     const pickables: THREE.Object3D[] = [];
     const shipGeo = new THREE.ConeGeometry(4, 14, 5).rotateX(Math.PI / 2);
     const runtimes = new Map<string, CityRuntime>();
-    cities.forEach((data, ci) => {
+    cities.forEach((data) => {
       const { meta } = data;
       const normal = new THREE.Vector3(...plotDirection(data.plot)).normalize();
       const anchor = new THREE.Object3D();
@@ -234,14 +306,17 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
       scene.add(anchor);
       anchor.updateMatrixWorld(true);
 
-      // 地塊：讓城市坐在一塊平台上
+      // 地塊：讓城市坐在一塊平台上，邊線用城市代表色；深色的代表色提亮一點才看得到
       const color = new THREE.Color(meta.color);
-      const pad = new THREE.Mesh(
-        new THREE.CylinderGeometry(PLOT_RADIUS + 4, PLOT_RADIUS + 14, 40, 12),
-        mat(color.clone().lerp(new THREE.Color('#ffffff'), 0.7)),
-      );
+      const pad = glowFrame(new THREE.CylinderGeometry(PLOT_RADIUS + 4, PLOT_RADIUS + 14, 40, 12), color.clone().lerp(new THREE.Color('#ffffff'), 0.25));
       pad.position.y = -20;
       anchor.add(pad);
+
+      // 光暈：從軌道看，城市是星圖上的一個光點；靠近時在主迴圈裡淡出
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: softDot, color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+      halo.position.copy(normal).multiplyScalar(R + 40);
+      halo.scale.setScalar(PLOT_RADIUS * 3.2);
+      scene.add(halo);
 
       // 先放預設城市；有 City.ts 的話，載入成功後再換成同學自己蓋的城市
       const fallback = buildDefaultCity(meta);
@@ -283,14 +358,17 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
         return out.copy(a).applyQuaternion(qi).multiplyScalar(radius);
       };
       const pts = Array.from({ length: 65 }, (_, i) => routePoint(i / 64, new THREE.Vector3()));
-      const routeMat = new THREE.LineDashedMaterial({ color, dashSize: 14, gapSize: 10, transparent: true, opacity: 0.55 });
-      const route = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), routeMat);
-      route.computeLineDistances();
-      scene.add(route);
-      const ship = new THREE.Mesh(shipGeo, debrisMats[ci % debrisMats.length]);
+      // WebGL 內建線條只有 1px，要有粗細得用 Line2。光暈線平常不畫，有人參觀或指到才打開
+      const routeGeo = new LineGeometry().setPositions(pts.flatMap((p) => [p.x, p.y, p.z]));
+      const routeMat = new LineMaterial({ color, linewidth: 1.2, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false });
+      scene.add(new Line2(routeGeo, routeMat));
+      const routeGlow = new Line2(routeGeo, new LineMaterial({ color, linewidth: 6, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false }));
+      routeGlow.visible = false;
+      scene.add(routeGlow);
+      const ship = new THREE.Mesh(shipGeo, new THREE.MeshBasicMaterial({ color }));
       scene.add(ship);
 
-      runtimes.set(meta.id, { data, anchor, normal, routeMat, ship, routePoint });
+      runtimes.set(meta.id, { data, anchor, normal, routeMat, routeGlow, halo, ship, routePoint });
     });
 
     // ── 鏡頭 ───────────────────────────────────────────
@@ -478,6 +556,7 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
       const h = renderer.domElement.clientHeight;
 
       if (!reduce) for (const fn of animated) fn(t, dt);
+      air.uniforms.fade.value = THREE.MathUtils.smoothstep(camera.position.length(), R * 1.15, R * 1.6);
 
       runtimes.forEach((rt, id) => {
         const visited = s.cityId === id;
@@ -497,7 +576,10 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
         rt.routePoint(THREE.MathUtils.clamp(u + (p < 0.5 ? 0.01 : -0.01), 0, 1), tmpB);
         rt.ship.position.copy(tmpA);
         rt.ship.lookAt(tmpB);
-        rt.routeMat.opacity = visited || hoverRef.current === id ? 1 : 0.55;
+        const lit = visited || hoverRef.current === id;
+        rt.routeMat.opacity = lit ? 1 : 0.4;
+        rt.routeGlow.visible = lit;
+        rt.halo.material.opacity = THREE.MathUtils.smoothstep(camera.position.distanceTo(rt.halo.position), 400, 1600) * (lit ? 1 : 0.7);
 
         // 城市名牌：只在首頁、且城市面向鏡頭時顯示
         const label = labelRefs.current[id];
@@ -524,14 +606,15 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
       cancelAnimationFrame(frame);
       unsub();
       skyTex.dispose();
+      softDot.dispose();
       ro.disconnect();
       controls?.dispose();
       renderer.domElement.removeEventListener('pointermove', onMove);
       renderer.domElement.removeEventListener('pointerdown', onDown);
       renderer.domElement.removeEventListener('pointerup', onUp);
       scene.traverse((o) => {
-        if (o instanceof THREE.Mesh || o instanceof THREE.Line) {
-          o.geometry.dispose();
+        if (o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points) o.geometry.dispose();
+        if (o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points || o instanceof THREE.Sprite) {
           const m = o.material as THREE.Material | THREE.Material[];
           (Array.isArray(m) ? m : [m]).forEach((x) => x.dispose());
         }
@@ -559,7 +642,7 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
             }}
             className={`${styles.label} ${hover === c.meta.id ? styles.labelActive : ''}`}
           >
-            <span className={styles.labelDot} style={{ background: c.meta.color }} />
+            <span className={styles.labelDot} style={{ background: c.meta.color, boxShadow: `0 0 8px ${c.meta.color}` }} />
             {c.meta.name}
           </div>
         ))}
@@ -573,10 +656,10 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
                 {scaleName[active.meta.scale]}　·　{active.meta.scenes.length} 個站點
               </p>
               <h2 className={styles.panelTitle}>{active.meta.name}</h2>
-              <p className={styles.panelOwner}>市長　{active.meta.owner}</p>
+              <p className={styles.panelOwner}>探索者　{active.meta.owner}</p>
               <p className={styles.signal}>
                 <span className={styles.signalMark} aria-hidden />
-                {active.meta.goodwill}
+                {active.meta.oneLiner}
               </p>
               <button type="button" className={styles.go} onClick={() => router.push(`/cities/${active.meta.id}/`)}>
                 搭穿梭機降落 →
@@ -586,10 +669,10 @@ export default function Universe({ cities, hubName }: { cities: CityData[]; hubN
             <>
               <p className="label">{hubName}　·　太空港接收中</p>
               <p className={styles.stat}>
-                <b>{cities.length}</b> 座城市
+                <b>{cities.length}</b> 件作品
               </p>
               <p className={styles.hint}>
-                {failed ? '你的瀏覽器無法顯示 3D，請往下捲動查看城市名冊。' : '拖曳旋轉星球，指向城市看它的善意企劃，點選就能搭穿梭機降落。'}
+                {failed ? '你的瀏覽器無法顯示 3D，請往下捲動查看作品名冊。' : '拖曳旋轉星球，指向光點看作品的一句話描述，點選就能搭穿梭機降落。'}
               </p>
             </>
           )}

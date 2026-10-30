@@ -1,6 +1,6 @@
 # 這是範本，不要直接修改
 
-建立你自己的城市：在 Claude Code 輸入 `/new-city`，或執行
+把你的作品放上星圖：在 Claude Code 輸入 `/new-city`，或執行
 
 ```bash
 npm run new-city -- <你的GitHub帳號>

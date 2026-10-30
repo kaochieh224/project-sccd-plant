@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * 燈塔港：老師的示範城市。
+ * 燈塔港：老師的示範作品。
  * 示範子 UI 可以怎麼「自己編排」：
  *   ① 不用 <Nameplate>，天空窗裡放自己設計的標題，文字跟著穿梭機的站點改變（useShuttle）
- *   ② 企劃不用 <ProposalBoard>，改成自己的排法（資料一樣來自 proposal.json）
+ *   ② 作品卡不用 <WorkCard>，改成自己的排法（資料一樣來自 work.json）
  *   ③ 一個用 useState 做的互動
  */
 import { useState } from 'react';
@@ -19,7 +19,7 @@ const HINTS = [
   'Pull Request 是邀請別人看你的作品，不是交考卷。',
 ];
 
-export default function Page({ meta, proposal }: PageProps) {
+export default function Page({ meta, work }: PageProps) {
   const { scene, go } = useShuttle();
   const [count, setCount] = useState(0);
   const stop = meta.scenes[scene] ?? meta.scenes[0];
@@ -44,17 +44,17 @@ export default function Page({ meta, proposal }: PageProps) {
         </div>
       </Sky>
 
-      {/* ② 自己排的企劃：左欄大標，右欄問題 → 行動 → 改變 */}
-      <Ground className={styles.proposal}>
+      {/* ② 自己排的作品卡：左欄大標，右欄參與 → 架構 → 本質 */}
+      <Ground className={styles.work}>
         <div className={styles.left}>
-          <p className={styles.kicker}>善意企劃／{proposal.status}</p>
-          <h2>{proposal.title}</h2>
-          <p className={styles.audience}>給 {proposal.audience}</p>
+          <p className={styles.kicker}>作品卡／{work.stage}</p>
+          <h2>{meta.oneLiner}</h2>
+          <p className={styles.audience}>給 {work.audience}</p>
         </div>
         <ol className={styles.flow}>
-          <li><span>問題</span>{proposal.problem}</li>
-          <li><span>行動</span>{proposal.action}</li>
-          <li><span>改變</span>{proposal.impact}</li>
+          <li><span>參與</span>{work.participation}</li>
+          <li><span>架構</span>{work.architecture}</li>
+          <li><span>本質</span>{work.essence}</li>
         </ol>
       </Ground>
 
@@ -66,7 +66,7 @@ export default function Page({ meta, proposal }: PageProps) {
         </div>
         <div>
           <p className={styles.message} aria-live="polite">
-            {count === 0 ? '按下按鈕，向整顆星球送出一道光。' : HINTS[(count - 1) % HINTS.length]}
+            {count === 0 ? '按下按鈕，向整張星圖送出一道光。' : HINTS[(count - 1) % HINTS.length]}
           </p>
           <button type="button" className={styles.button} onClick={() => setCount((c) => c + 1)}>
             送出一道光

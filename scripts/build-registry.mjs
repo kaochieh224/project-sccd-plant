@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 掃描 cities/ 底下每一座城市：
- *   1. 驗證 city.json（城市識別＋穿梭機站點）與 proposal.json（企劃）是否符合公版規格
+ *   1. 驗證 city.json（作品識別＋穿梭機站點）與 work.json（作品卡）是否符合公版規格
  *   2. 檢查 Page.tsx／City.ts 是否只引用自己資料夾內的檔案與允許的套件
  *   3. 依 GitHub 帳號分配星球上的地塊（固定、不可自選）
  *   4. 產生 src/generated/cities.ts（頁面）與 src/generated/cityModels.ts（3D 城市）
@@ -32,7 +32,8 @@ const ALLOWED_CORE = ['@/kit'];
 const ALLOWED_EXT = ['.tsx', '.ts', '.css', '.json', '.md', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif', '.mp4', '.webm', '.woff2'];
 const RESERVED = ['Page.tsx', 'Page.module.css', 'City.ts', 'City.example.ts', 'CLAUDE.md', 'README.md'];
 const SCALES = ['house', 'village', 'town', 'metropolis'];
-const STATUS = ['構想', '原型', '測試', '完成'];
+const DIRECTIONS = ['技術', '議題', '美學'];
+const STAGES = ['前置期', '做到可玩', '做到展出', '送出去', '收成'];
 
 const errors = [];
 const warnings = [];
@@ -75,15 +76,15 @@ function readJson(id, file) {
 const isVec3 = (v) => Array.isArray(v) && v.length === 3 && v.every((n) => typeof n === 'number' && Number.isFinite(n));
 
 function validateMeta(id, meta) {
-  const need = ['id', 'name', 'owner', 'goodwill', 'color', 'scale', 'keywords', 'scenes'];
+  const need = ['id', 'name', 'owner', 'oneLiner', 'color', 'scale', 'keywords', 'scenes'];
   for (const k of need) if (!(k in meta)) fail(id, `city.json 缺少欄位「${k}」（可參考 cities/_template/city.json）`);
   const extra = Object.keys(meta).filter((k) => !need.includes(k));
   if (extra.length) fail(id, `city.json 有規格外的欄位：${extra.join(', ')}。想加新欄位請走框架提案（/propose）。`);
 
   if (meta.id !== id) fail(id, `city.json 的 id 是「${meta.id}」，但資料夾名稱是「${id}」，兩者必須相同。`);
-  if (typeof meta.name !== 'string' || !meta.name.trim() || len(meta.name) > 16) fail(id, 'name（城市名稱）必須是 1–16 字');
+  if (typeof meta.name !== 'string' || !meta.name.trim() || len(meta.name) > 16) fail(id, 'name（作品名稱）必須是 1–16 字');
   if (typeof meta.owner !== 'string' || !meta.owner.trim()) fail(id, 'owner 必須填寫你的名字');
-  if (typeof meta.goodwill !== 'string' || !meta.goodwill.trim() || len(meta.goodwill) > 40) fail(id, 'goodwill 必須填寫你的善意企劃，一句話、40 字以內');
+  if (typeof meta.oneLiner !== 'string' || !meta.oneLiner.trim() || len(meta.oneLiner) > 40) fail(id, 'oneLiner 必須填寫一句話作品描述，40 字以內');
   if (typeof meta.color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(meta.color)) fail(id, `color 必須是 6 碼 hex，例如 #2b59c3（目前是 ${JSON.stringify(meta.color)}）`);
   if (!SCALES.includes(meta.scale)) fail(id, `scale 只能是 ${SCALES.map((s) => `"${s}"`).join('、')}（一棟房子／村落／城鎮／大都市）`);
   if (!Array.isArray(meta.keywords) || meta.keywords.length > 3 || meta.keywords.some((k) => typeof k !== 'string' || len(k) > 10))
@@ -114,22 +115,27 @@ function validateMeta(id, meta) {
   });
 }
 
-function validateProposal(id, pr) {
-  const need = ['title', 'audience', 'problem', 'action', 'impact', 'steps', 'status'];
-  for (const k of need) if (!(k in pr)) fail(id, `proposal.json 缺少欄位「${k}」（可參考 cities/_template/proposal.json）`);
-  const extra = Object.keys(pr).filter((k) => !need.includes(k));
-  if (extra.length) fail(id, `proposal.json 有規格外的欄位：${extra.join(', ')}。企劃版面是公版，想加欄位請走框架提案。`);
+function validateWork(id, w) {
+  const need = ['direction', 'audience', 'competition', 'participation', 'architecture', 'essence', 'stage'];
+  const optional = ['oneLinerEn', 'showcaseUrl', 'repoUrl'];
+  for (const k of need) if (!(k in w)) fail(id, `work.json 缺少欄位「${k}」（可參考 cities/_template/work.json）`);
+  const extra = Object.keys(w).filter((k) => !need.includes(k) && !optional.includes(k));
+  if (extra.length) fail(id, `work.json 有規格外的欄位：${extra.join(', ')}。作品卡是公版，想加欄位請走框架提案。`);
   const text = (k, max, label) => {
-    if (typeof pr[k] !== 'string' || !pr[k].trim() || len(pr[k]) > max) fail(id, `proposal.json 的 ${k}（${label}）必須填寫，${max} 字以內`);
+    if (typeof w[k] !== 'string' || !w[k].trim() || len(w[k]) > max) fail(id, `work.json 的 ${k}（${label}）必須填寫，${max} 字以內`);
   };
-  text('title', 24, '企劃名稱');
-  text('audience', 40, '對象');
-  text('problem', 120, '觀察到的問題');
-  text('action', 120, '我的行動');
-  text('impact', 120, '期待的改變');
-  if (!Array.isArray(pr.steps) || pr.steps.length < 1 || pr.steps.length > 3 || pr.steps.some((x) => typeof x !== 'string' || !x.trim() || len(x) > 40))
-    fail(id, 'proposal.json 的 steps 必須是 1–3 個步驟，每步 40 字以內');
-  if (!STATUS.includes(pr.status)) fail(id, `proposal.json 的 status 只能是 ${STATUS.map((x) => `"${x}"`).join('、')}`);
+  text('audience', 40, '觀眾');
+  text('competition', 40, '主攻賽事／類別');
+  text('participation', 120, '觀眾怎麼參與');
+  text('architecture', 120, '架構差在哪裡');
+  text('essence', 120, '拿掉哪個部分就變回傳統');
+  if (w.oneLinerEn !== undefined && (typeof w.oneLinerEn !== 'string' || len(w.oneLinerEn) > 120)) fail(id, 'work.json 的 oneLinerEn 必須是 120 字元以內');
+  if (!DIRECTIONS.includes(w.direction)) fail(id, `work.json 的 direction 只能是 ${DIRECTIONS.map((x) => `"${x}"`).join('、')}`);
+  if (!STAGES.includes(w.stage)) fail(id, `work.json 的 stage 只能是 ${STAGES.map((x) => `"${x}"`).join('、')}`);
+  // 這兩個網址會變成全站的連結，只接受 https，避免 javascript: 這類網址
+  for (const k of ['showcaseUrl', 'repoUrl']) {
+    if (w[k] !== undefined && (typeof w[k] !== 'string' || !/^https:\/\/\S+$/.test(w[k]))) fail(id, `work.json 的 ${k} 必須是 https:// 開頭的網址`);
+  }
 }
 
 function validateFiles(id, dir) {
@@ -179,21 +185,21 @@ function main() {
       continue;
     }
     const metaPath = path.join(dir, 'city.json');
-    const proposalPath = path.join(dir, 'proposal.json');
+    const workPath = path.join(dir, 'work.json');
     if (!fs.existsSync(metaPath)) {
       fail(id, '缺少 city.json');
       continue;
     }
-    if (!fs.existsSync(proposalPath)) {
-      fail(id, '缺少 proposal.json（企劃）');
+    if (!fs.existsSync(workPath)) {
+      fail(id, '缺少 work.json（作品卡）');
       continue;
     }
     if (!fs.existsSync(path.join(dir, 'Page.tsx'))) fail(id, '缺少 Page.tsx（你的子 UI）');
     const meta = readJson(id, metaPath);
-    const proposal = readJson(id, proposalPath);
-    if (!meta || !proposal) continue;
+    const work = readJson(id, workPath);
+    if (!meta || !work) continue;
     validateMeta(id, meta);
-    validateProposal(id, proposal);
+    validateWork(id, work);
     validateFiles(id, dir);
     entries.push({ id, h: hash(id), hasModel: fs.existsSync(path.join(dir, 'City.ts')) });
   }
@@ -222,15 +228,15 @@ function main() {
   const header = '// ⚠ 此檔由 scripts/build-registry.mjs 自動產生，請勿手動修改，也不會進入 git。';
   const citiesTs = [
     header,
-    "import type { CityEntry, CityMeta, Proposal } from '@/lib/types';",
+    "import type { CityEntry, CityMeta, Work } from '@/lib/types';",
     ...entries.flatMap((e, i) => [
       `import Page${i} from '@cities/${e.id}/Page';`,
       `import meta${i} from '@cities/${e.id}/city.json';`,
-      `import proposal${i} from '@cities/${e.id}/proposal.json';`,
+      `import work${i} from '@cities/${e.id}/work.json';`,
     ]),
     '',
     'export const cities: CityEntry[] = [',
-    ...entries.map((e, i) => `  { meta: meta${i} as CityMeta, proposal: proposal${i} as Proposal, plot: ${e.plot}, Page: Page${i} },`),
+    ...entries.map((e, i) => `  { meta: meta${i} as CityMeta, work: work${i} as Work, plot: ${e.plot}, Page: Page${i} },`),
     '];',
     '',
   ];

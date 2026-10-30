@@ -1,8 +1,8 @@
 {
   "id": "your-github-id",
-  "name": "未命名城市",
+  "name": "未命名作品",
   "owner": "你的名字",
-  "goodwill": "我想為＿＿＿，做一件＿＿＿的小事。",
+  "oneLiner": "一句話說出：觀眾在這件作品前會做什麼。",
   "color": "#2b59c3",
   "scale": "village",
   "keywords": [
@@ -21,7 +21,7 @@
         0,
         0
       ],
-      "note": "從空中看整座城市"
+      "note": "從空中看整個地塊"
     },
     {
       "name": "街角",

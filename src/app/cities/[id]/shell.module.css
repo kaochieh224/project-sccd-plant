@@ -2,19 +2,20 @@
 
 .bar {
   display: flex; justify-content: space-between; align-items: center; gap: 16px;
-  margin: 12px var(--gutter) 0; padding: 8px 10px 8px 8px; font-size: 13px; font-weight: 700;
-  position: sticky; top: 12px; z-index: 100;
-  border: 3px solid var(--ink); border-radius: 999px; box-shadow: 0 4px 0 var(--ink);
+  margin: 12px var(--gutter) 0; padding: 6px 10px 6px 6px; font-family: var(--mono); font-size: 12px;
+  position: sticky; top: 12px; z-index: 100; color: var(--night-text);
+  background: var(--night-panel-over) !important; border: 1px solid var(--night-line); border-radius: 2px;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 .home {
   text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
-  background: var(--accent); color: #fff; border-radius: 999px; padding: 4px 14px 4px 6px;
+  border: 1px solid var(--night-line-strong); border-radius: 2px; padding: 4px 10px 4px 6px;
 }
-.home:hover { background: var(--ink); color: #fff; }
-.hubDot { width: 18px; height: 18px; border-radius: 50%; background: conic-gradient(#ffb627, #7bd389, #3ec1d3, #9b5de5, #ffb627); border: 2px solid #fff; }
-.meta { display: flex; gap: 16px; color: var(--ink-2); min-width: 0; padding-right: 8px; }
+.home:hover { background: rgba(143, 196, 255, 0.18); }
+.hubDot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--night-line-strong); background: radial-gradient(circle, var(--night-text) 0 2px, transparent 3px); }
+.meta { display: flex; gap: 16px; color: var(--night-dim); min-width: 0; padding-right: 8px; }
 .meta span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.meta a:hover { color: var(--accent); }
+.meta a:hover { color: var(--night-accent); }
 @media (max-width: 520px) { .meta span:first-child { display: none; } }
 
 /* 子 UI：隔離層，城市內的 position／z-index 不會蓋過母 UI。
@@ -24,11 +25,12 @@
 
 .neighbors {
   display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 24px var(--gutter) 96px;
-  background: var(--cream) !important; border-top: 3px solid var(--ink);
+  background: var(--night-bg) !important; border-top: 1px solid var(--night-line); color: var(--night-text);
 }
 .neighbors a {
-  padding: 16px 20px; text-decoration: none; font-weight: 900; font-size: 18px; display: flex; flex-direction: column; gap: 2px;
-  background: #fff; border: 3px solid var(--ink); border-radius: var(--radius); box-shadow: 0 4px 0 var(--ink); transition: transform 0.1s, box-shadow 0.1s;
+  padding: 14px 18px; text-decoration: none; font-weight: 700; font-size: 18px; display: flex; flex-direction: column; gap: 2px;
+  background: rgba(150, 190, 255, 0.04); border: 1px solid var(--night-line); border-radius: 2px; transition: border-color 0.15s;
 }
-.neighbors a:hover { transform: translateY(2px); box-shadow: 0 2px 0 var(--ink); color: var(--accent); }
+.neighbors a:hover { border-color: var(--night-line-strong); color: var(--night-accent); }
+.neighbors :global(.label) { font-family: var(--mono); font-weight: 400; color: var(--night-dim); }
 .right { text-align: right; }

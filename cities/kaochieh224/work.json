@@ -1,0 +1,9 @@
+{
+  "direction": "議題",
+  "audience": "第一次寫程式、第一次用 GitHub 的設計系同學",
+  "competition": "示範用，不投件",
+  "participation": "按下按鈕向星圖送出一道光，燈塔回一句卡關時用得上的提示。",
+  "architecture": "穿梭機停在哪一站，標題就跟著換，燈塔也會回應參觀者。",
+  "essence": "拿掉回應，它就只是一張燈塔的圖。",
+  "stage": "做到可玩"
+}
