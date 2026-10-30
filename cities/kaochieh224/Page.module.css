@@ -1,0 +1,28 @@
+/* 燈塔港刻意用和主星不同的風格：瑞士平面設計，示範子 UI 可以完全自由 */
+.kicker { font-size: 11px; letter-spacing: 0.14em; color: #5c5c5c; margin: 0 0 10px; font-family: Helvetica, Arial, sans-serif; }
+
+.title { background: rgba(255, 255, 255, 0.9); padding: 20px 24px; max-width: 680px; border-left: 6px solid #d4101a; }
+.title h1 { font-size: clamp(48px, 9vw, 120px); line-height: 0.95; margin: 0 0 12px; letter-spacing: -0.03em; color: #171717; }
+.note { font-size: 18px; margin: 0 0 16px; color: #171717; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip, .chipOn { font: inherit; font-size: 13px; padding: 6px 12px; border: 1px solid #171717; background: #fff; cursor: pointer; }
+.chipOn { background: #171717; color: #fff; }
+.chip:hover { background: #d4101a; color: #fff; border-color: #d4101a; }
+
+.proposal { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; padding: 48px var(--gutter); border-top: 1px solid #171717; }
+@media (max-width: 800px) { .proposal { grid-template-columns: 1fr; gap: 24px; } }
+.left h2 { font-size: clamp(32px, 4vw, 52px); line-height: 1.1; margin: 0 0 16px; color: #171717; }
+.audience { margin: 0; color: #5c5c5c; }
+.flow { list-style: none; margin: 0; padding: 0; }
+.flow li { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 16px 0; border-top: 1px solid #d9d9d9; font-size: 16px; color: #171717; }
+.flow li:first-child { border-top: 2px solid #171717; }
+.flow span { color: #d4101a; font-weight: 700; font-size: 13px; padding-top: 2px; }
+
+.console { display: grid; grid-template-columns: auto 1fr; gap: 48px; align-items: end; padding: 48px var(--gutter); background: #171717 !important; color: #fff; }
+@media (max-width: 640px) { .console { grid-template-columns: 1fr; gap: 16px; } }
+.console .kicker { color: #9a9a9a; }
+.count { font-size: clamp(72px, 12vw, 160px); font-weight: 700; line-height: 0.85; margin: 0; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; }
+.message { font-size: 20px; min-height: 3em; margin: 0 0 20px; max-width: 24em; }
+.button { font: inherit; font-weight: 700; padding: 12px 20px; border: 0; background: #d4101a; color: #fff; cursor: pointer; }
+.button:hover { background: #fff; color: #171717; }
+.button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }

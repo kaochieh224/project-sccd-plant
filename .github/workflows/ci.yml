@@ -1,0 +1,58 @@
+# 每個 Pull Request 都會自動跑這三道檢查，全部通過才能合併
+name: 城市檢查
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 學生的 Write 權限也能加標籤，所以要確認 core 標籤是老師（maintain／admin）加的
+      - name: 確認 core 標籤由老師加上
+        id: core
+        if: contains(github.event.pull_request.labels.*.name, 'core')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          actor=$(gh api "repos/$REPO/issues/$PR/events" --paginate --jq '.[] | select(.event=="labeled" and .label.name=="core") | .actor.login' | tail -n 1)
+          perm=$(gh api "repos/$REPO/collaborators/$actor/permission" --jq .permission || echo none)
+          echo "core 標籤由 @$actor 加上（權限：$perm）"
+          if [ "$perm" = "admin" ] || [ "$perm" = "maintain" ]; then
+            echo "ok=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::core 標籤必須由老師（maintain 或 admin 權限）加上，這次不採計"
+          fi
+
+      - name: ① 越界檢查（只能改自己的城市）
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          PR_LABELS: ${{ steps.core.outputs.ok == '1' && 'core' || '' }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: npm run check-scope
+
+      - name: ② 公版規格檢查（city.json／proposal.json／引用規則）＋型別檢查
+        run: npm run check
+
+      - name: ③ 試著建置整顆星球
+        run: npm run build

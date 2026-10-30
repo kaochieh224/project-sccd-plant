@@ -1,0 +1,41 @@
+{
+  "id": "your-github-id",
+  "name": "未命名城市",
+  "owner": "你的名字",
+  "goodwill": "我想為＿＿＿，做一件＿＿＿的小事。",
+  "color": "#2b59c3",
+  "scale": "village",
+  "keywords": [
+    "關鍵字"
+  ],
+  "scenes": [
+    {
+      "name": "全景",
+      "camera": [
+        0,
+        170,
+        260
+      ],
+      "target": [
+        0,
+        0,
+        0
+      ],
+      "note": "從空中看整座城市"
+    },
+    {
+      "name": "街角",
+      "camera": [
+        70,
+        14,
+        70
+      ],
+      "target": [
+        0,
+        10,
+        0
+      ],
+      "note": "降落到地面"
+    }
+  ]
+}

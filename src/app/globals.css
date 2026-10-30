@@ -1,0 +1,49 @@
+/* 主星的全域樣式（核心檔案）：low poly 多彩玩具感。城市頁面請用自己資料夾內的 *.module.css。 */
+:root {
+  --ink: #2a2340;
+  --ink-2: #5d5677;
+  --ink-3: #9a94b3;
+  --line: #e6e0f2;
+  --paper: #ffffff;
+  --cream: #fff8ec;
+  --accent: #ff5d8f;
+  --c-yellow: #ffb627;
+  --c-cyan: #3ec1d3;
+  --c-green: #7bd389;
+  --c-purple: #9b5de5;
+  --c-orange: #ff8c42;
+  --c-blue: #4d96ff;
+  --radius: 20px;
+  --chunky: 0 4px 0 var(--ink);
+  --gutter: clamp(16px, 4vw, 48px);
+  --font: 'Nunito', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
+body {
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+::selection { background: var(--accent); color: #fff; }
+
+.label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.hairline { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* 內容層疊在 3D 宇宙之上 */
+.content { position: relative; z-index: 1; pointer-events: none; }
+.content > * { pointer-events: none; }
+.solid { pointer-events: auto; background: var(--paper); }
+.content a, .content button { pointer-events: auto; }
