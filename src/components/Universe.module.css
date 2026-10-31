@@ -2,35 +2,72 @@
 .canvas { position: absolute; inset: 0; }
 .canvas canvas { display: block; width: 100% !important; height: 100% !important; cursor: grab; touch-action: pan-y; }
 
+/* 只在軌道上與飛行中出現：暗角與底片顆粒，降落後不蓋在同學的 3D 模型上 */
+.film { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.8s; }
+/* 第二層暗底墊在左下的標題後面：城市轉到標題背後時，字才讀得清楚 */
+.film::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 58% 62% at 0% 100%, rgba(2, 4, 12, 0.92) 30%, transparent 100%),
+    radial-gradient(ellipse 85% 85% at 62% 50%, transparent 45%, rgba(2, 4, 12, 0.72) 100%);
+}
+@media (max-width: 900px) {
+  .film::before { background: linear-gradient(rgba(2, 4, 12, 0.88) 0, rgba(2, 4, 12, 0.7) 34%, transparent 52%), radial-gradient(ellipse 85% 85% at 50% 60%, transparent 45%, rgba(2, 4, 12, 0.72) 100%); }
+}
+.film::after {
+  content: ''; position: absolute; inset: 0; opacity: 0.05; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.filmOn { opacity: 1; }
+
 .labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; transition: opacity 0.4s; }
 .label {
-  position: absolute; left: 0; top: 0; white-space: nowrap;
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--night-text);
-  padding: 2px 8px; background: var(--night-panel); border: 1px solid var(--night-line); border-radius: 2px;
-  transition: background 0.2s, border-color 0.2s;
+  position: absolute; left: 0; top: 0; opacity: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--night-text); padding-bottom: 22px; transition: opacity 0.25s, color 0.2s;
+  text-shadow: 0 0 10px rgba(4, 8, 22, 1), 0 0 3px rgba(4, 8, 22, 1);
 }
-.labelActive { border-color: var(--night-line-strong); background: rgba(70, 120, 210, 0.55); }
+/* 從光點往上拉一條細線，文字掛在線頭 */
+.label::after { content: ''; position: absolute; left: 50%; bottom: 0; width: 1px; height: 18px; background: linear-gradient(transparent, var(--night-line-strong)); transform: rotate(180deg); }
+.labelCode { font-family: var(--mono); font-size: 11px; color: var(--night-dim); }
+.labelActive { color: #fff; }
+.labelActive .labelCode { color: var(--night-accent); }
 
 .panel {
-  position: absolute; right: var(--gutter); bottom: 32px; width: min(320px, calc(100vw - 32px));
-  background: var(--night-panel); border: 1px solid var(--night-line); border-radius: 2px;
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  padding: 16px 20px 18px; color: var(--night-text);
+  position: absolute; right: var(--gutter); bottom: 40px; width: min(320px, calc(100vw - 32px));
+  background: var(--night-panel); border-top: 1px solid var(--night-line-strong);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  padding: 14px 16px 16px; color: var(--night-text); animation: panelIn 1s 2.4s both;
 }
-@media (max-width: 640px) { .panel { left: 16px; right: 16px; width: auto; bottom: 16px; } }
-.panel :global(.label) { margin: 0; font-family: var(--mono); color: var(--night-dim); }
-.panelTitle { font-size: 28px; line-height: 1.15; margin: 6px 0 2px; font-weight: 700; }
-.panelOwner { margin: 0 0 14px; color: var(--night-dim); }
-.signal { margin: 0 0 16px; font-size: 16px; line-height: 1.5; display: flex; gap: 10px; }
-.signalMark { flex: none; width: 6px; height: 6px; margin-top: 9px; border-radius: 50%; background: var(--night-accent); box-shadow: 0 0 8px var(--night-accent); }
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.panelActive { animation: panelIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (max-width: 900px) { .panel { left: 16px; right: 16px; width: auto; bottom: 16px; } }
+.panelKicker { margin: 0; font-family: var(--mono); font-size: 12px; color: var(--night-dim); font-variant-numeric: tabular-nums; }
+.panelTitle { font-size: 26px; line-height: 1.25; margin: 6px 0 2px; font-weight: 500; }
+.panelOwner { margin: 0 0 10px; color: var(--night-dim); font-size: 14px; }
+.signal { margin: 0 0 14px; font-size: 15px; line-height: 1.6; }
+:global(html[data-seen]) .panel:not(.panelActive) { animation: none; }
+.panel { transition: opacity 0.5s; }
+:global(html[data-returning]) .panel { opacity: 0; transition: none; }
+@media (max-height: 500px) { .panel { display: none; } }
+.goHint { margin: 0; font-family: var(--mono); font-size: 12px; color: var(--night-accent); }
+@media (hover: none) { .goHint { display: none; } }
+@media (hover: hover) { .go { display: none; } }
 .go {
   font-family: var(--mono); font-size: 13px; background: transparent; color: var(--night-text); border: 1px solid var(--night-line-strong);
-  border-radius: 2px; padding: 8px 14px; cursor: pointer; transition: background 0.15s;
+  border-radius: 0; padding: 0 14px; min-height: 44px; cursor: pointer; transition: background 0.2s, color 0.2s;
 }
-.go:hover { background: rgba(143, 196, 255, 0.18); }
+.go:hover { background: var(--night-text); color: var(--night-bg); }
 .go:focus-visible { outline: 2px solid var(--night-accent); outline-offset: 2px; }
-.stat { font-size: 15px; margin: 8px 0 10px; }
-.stat b { font-family: var(--mono); font-size: 36px; font-weight: 400; margin-right: 4px; color: var(--night-accent); }
-.hint { color: var(--night-dim); font-size: 13px; margin: 0; }
-.label { display: inline-flex; align-items: center; gap: 6px; }
-.labelDot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.hint { color: var(--night-text); font-size: 14px; line-height: 1.65; margin: 6px 0 0; }
+
+/* 飛行儀表：只在鏡頭飛行時出現 */
+.tele {
+  position: absolute; left: var(--gutter); top: 50%; transform: translateY(-50%); pointer-events: none;
+  display: grid; gap: 4px; font-family: var(--mono); font-size: 12px; color: var(--night-text); font-variant-numeric: tabular-nums;
+  opacity: 0; transition: opacity 0.35s; text-shadow: 0 0 8px rgba(4, 8, 22, 1);
+}
+.tele[data-on='1'] { opacity: 1; }
+.teleName { font-family: var(--serif); font-size: 30px; font-weight: 300; line-height: 1.3; margin: 2px 0 8px; }

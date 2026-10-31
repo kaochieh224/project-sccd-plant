@@ -18,7 +18,8 @@
   --chunky: 0 4px 0 var(--ink);
   --gutter: clamp(16px, 4vw, 48px);
   --font: 'Nunito', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
-  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', monospace;
+  --mono: 'Space Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', monospace;
+  --serif: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif; /* 只給母 UI 的大標題 */
   --night-bg: #040816;
   --night-panel: rgba(8, 14, 34, 0.72);
   --night-panel-over: rgba(8, 14, 34, 0.92); /* 會壓在同學白底內容上的面板：穿梭機、導覽列 */
@@ -31,6 +32,7 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: var(--night-bg); color: var(--ink); }
+html { scrollbar-color: var(--night-line) var(--night-bg); }
 body {
   font-family: var(--font);
   font-size: 15px;

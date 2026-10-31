@@ -6,12 +6,14 @@
  */
 import { useEffect } from 'react';
 import { shuttle, useShuttle } from '@/kit/shuttle';
+import { useScrolledPast3D } from './useScrolledPast3D';
 import type { Scene } from '@/lib/types';
 import styles from './ShuttleHud.module.css';
 
 export default function ShuttleHud({ scenes }: { scenes: Record<string, Scene[]> }) {
   const { cityId, scene, go, next, prev } = useShuttle();
   const list = cityId ? scenes[cityId] : undefined;
+  const past3D = useScrolledPast3D();
 
   useEffect(() => {
     if (!list || list.length < 2) return;
@@ -29,7 +31,7 @@ export default function ShuttleHud({ scenes }: { scenes: Record<string, Scene[]>
   const current = list[scene] ?? list[0];
 
   return (
-    <section className={styles.hud} aria-label="穿梭機">
+    <section className={`${styles.hud} ${past3D ? styles.hudAway : ''}`} aria-label="穿梭機">
       <div className={styles.screen} aria-live="polite">
         <p className={styles.kicker}>
           穿梭機　{String(scene + 1).padStart(2, '0')} / {String(list.length).padStart(2, '0')}

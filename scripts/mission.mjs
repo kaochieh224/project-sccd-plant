@@ -95,18 +95,8 @@ const extras = [
 const next = missions.find((m) => !m.done) || extras.find((m) => !m.done) || null;
 const doneCount = missions.filter((m) => m.done).length;
 
-// 探索者計畫 115-1 的里程碑。ponytail: 日期手寫，只到 1/26；以 Notion 計畫為準，改期時要同步這裡
-const MILESTONES = [
-  ['2026-11-06', '計畫書確認（含暫定選賽、組隊方案）'],
-  ['2026-11-20', 'W5 規格確認、鎖定主攻'],
-  ['2026-12-04', 'W7 可玩評圖'],
-  ['2026-12-18', 'W9 外部測試回報'],
-  ['2026-12-25', 'W10 展示頁定案、送印'],
-  ['2026-12-31', 'W11 班展進場'],
-  ['2027-01-05', 'W12 評圖暨送件預審、送件包 v1、送件承諾單'],
-  ['2027-01-12', '第一次審稿日'],
-  ['2027-01-26', '第二次審稿日'],
-];
+// 探索者計畫 115-1 的里程碑，首頁的時程也讀同一份。ponytail: 日期手寫，只到 1/26；以 Notion 計畫為準，改期時要同步 src/milestones.json
+const MILESTONES = JSON.parse(fs.readFileSync(new URL('../src/milestones.json', import.meta.url), 'utf8'));
 const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD（本地時間）
 const upcoming = MILESTONES.find(([d]) => d >= today);
 const milestoneLine = upcoming ? `下一個里程碑：${upcoming[0]}　${upcoming[1]}` : '115-1 的里程碑都過了，接下來看 Notion 計畫第 5 節。';

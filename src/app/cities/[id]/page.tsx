@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cities } from '@/generated/cities';
 import CityErrorBoundary from '@/components/CityErrorBoundary';
+import { starCoords } from '@/lib/starCatalog';
 import { site } from '@/site.config';
 import styles from './shell.module.css';
 
@@ -40,7 +41,7 @@ export default async function CityPage({ params }: { params: Promise<{ id: strin
         </Link>
         <span className={styles.meta}>
           <span>{meta.name}</span>
-          <span>地塊 {String(plot + 1).padStart(2, '0')}</span>
+          <span>{starCoords(plot).code}</span>
           {work.showcaseUrl && <a href={work.showcaseUrl}>展示頁 ↗</a>}
           <a href={work.repoUrl ?? `${site.repoUrl}/tree/${site.branch}/cities/${meta.id}`}>原始碼</a>
         </span>
@@ -56,11 +57,11 @@ export default async function CityPage({ params }: { params: Promise<{ id: strin
 
       {cities.length > 1 && (
         <nav className={`solid ${styles.neighbors}`} aria-label="鄰近作品">
-          <Link href={`/cities/${prev.meta.id}/`}>
+          <Link href={`/cities/${prev.meta.id}/`} prefetch={false}>
             <span className="label">← 上一件作品</span>
             {prev.meta.name}
           </Link>
-          <Link href={`/cities/${next.meta.id}/`} className={styles.right}>
+          <Link href={`/cities/${next.meta.id}/`} prefetch={false} className={styles.right}>
             <span className="label">下一件作品 →</span>
             {next.meta.name}
           </Link>

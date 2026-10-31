@@ -10,4 +10,5 @@ export const site = {
   hubName: '主星',
   repoUrl: 'https://github.com/kaochieh224/project-sccd-plant',
   branch: 'main',
+  pagesOrigin: 'https://kaochieh224.github.io',
 };
