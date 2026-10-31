@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 建立新城市：npm run new-city -- <你的GitHub帳號>
+ * 把作品放上星圖：npm run new-city -- <你的GitHub帳號>
  * 會把 cities/_template 複製成 cities/<帳號>，並填好 id。
  */
 import fs from 'node:fs';
@@ -35,9 +35,9 @@ fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
 
 console.log(`✓ 已建立 cities/${id}/
   下一步：
-  1. city.json      決定城市的名字、規模、顏色、穿梭機站點（公版欄位）
-  2. proposal.json  寫下你的善意企劃（公版欄位）
-  3. City.example.ts → 改名為 City.ts，親手蓋你的 3D 城市（選用）
+  1. city.json      決定作品名稱、一句話描述、規模、顏色、穿梭機站點（公版欄位）
+  2. work.json      填作品卡：主攻賽事、方向、非傳統三問、階段（公版欄位）
+  3. City.example.ts → 改名為 City.ts，蓋作品的 3D 模型（選用）
   4. Page.tsx       降落後的子 UI（完全自由）
-  5. CLAUDE.md      告訴 Claude Code 你的城市想表達什麼
+  5. CLAUDE.md      告訴 Claude Code 這個地塊想呈現什麼
   6. npm run dev    預覽`);

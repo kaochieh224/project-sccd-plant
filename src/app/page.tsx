@@ -1,104 +1,82 @@
-import Link from 'next/link';
 import { cities } from '@/generated/cities';
+import { luminosity, starCoords } from '@/lib/starCatalog';
+import { PLOT_COUNT } from '@/lib/world';
 import { site } from '@/site.config';
+import Catalogue from './Catalogue';
+import Timeline from './Timeline';
 import styles from './page.module.css';
 
 /**
  * 首頁＝主星軌道。第一個畫面是透明的，讓背後常駐的 3D 星球露出來；
- * 往下捲動是全班的城市名冊。
+ * 往下捲動是全班的星表，星球留在右邊，跟著你看的那一列轉動。
  */
 export default function Home() {
-  const keywords = [...new Set(cities.flatMap((c) => c.meta.keywords))];
-  const sorted = [...cities].sort((a, b) => a.meta.name.localeCompare(b.meta.name, 'zh-Hant'));
-  const scaleName = { house: '一棟房子', village: '村落', town: '城鎮', metropolis: '大都市' } as const;
+  const items = [...cities]
+    .sort((a, b) => a.plot - b.plot)
+    .map(({ meta, plot, work }) => ({
+      id: meta.id,
+      name: meta.name,
+      owner: meta.owner,
+      color: meta.color,
+      oneLiner: meta.oneLiner,
+      competition: work.competition,
+      direction: work.direction,
+      stage: work.stage,
+      light: luminosity(work.stage),
+      stops: meta.scenes.length,
+      keywords: meta.keywords,
+      showcaseUrl: work.showcaseUrl,
+      ...starCoords(plot),
+    }));
 
   return (
     <main>
       <section className={styles.sky}>
-        <header className={styles.header}>
-          <p className="label">{site.course}</p>
+        <p className={styles.top}>
+          <span>{site.course}</span>
+          <span className={styles.count}>
+            {String(cities.length).padStart(2, '0')} / {PLOT_COUNT} 光點
+          </span>
+        </p>
+        <header className={styles.header} data-hero-copy>
           <h1 className={styles.title} aria-label={site.title}>
             {[...site.title].map((ch, i) => (
-              <span key={i} className={styles.titleChar} aria-hidden>
+              <span key={i} className={styles.titleChar} style={{ '--i': i } as React.CSSProperties} aria-hidden>
                 {ch}
               </span>
             ))}
-            <span className={styles.titleEn}>{site.titleEn}</span>
           </h1>
+          <p className={styles.titleEn}>{site.titleEn}</p>
           <p className={styles.subtitle}>{site.subtitle}</p>
+          <a href="#cities" className={styles.scroll}>
+            <span aria-hidden>↓</span> 打開星表
+          </a>
         </header>
-        <a href="#cities" className={`label ${styles.scroll}`}>
-          ↓ 城市名冊
-        </a>
       </section>
 
-      <div className={`solid ${styles.ground}`}>
+      <div className={styles.ground}>
         <section className={styles.section} id="cities">
-          <div className={styles.sectionHead}>
-            <h2>城市名冊</h2>
-            <p className="label">Cities — {cities.length}</p>
-          </div>
-          {sorted.length === 0 ? (
-            <p className={styles.empty}>星球上還沒有城市。成為第一位市長吧。</p>
-          ) : (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>城市</th>
-                  <th>市長</th>
-                  <th>企劃</th>
-                  <th>進度</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map(({ meta, plot, proposal }) => (
-                  <tr key={meta.id}>
-                    <td className={styles.num}>{String(plot + 1).padStart(2, '0')}</td>
-                    <td>
-                      <Link href={`/cities/${meta.id}/`} className={styles.bodyLink}>
-                        <span className={styles.swatchSquare} style={{ background: meta.color }} />
-                        {meta.name}
-                      </Link>
-                      <span className={styles.kind}>
-                        {scaleName[meta.scale]}・{meta.scenes.length} 站
-                      </span>
-                    </td>
-                    <td>{meta.owner}</td>
-                    <td>
-                      <b className={styles.proposalTitle}>{proposal.title}</b>
-                      {meta.goodwill}
-                    </td>
-                    <td>
-                      <span className={styles.status}>{proposal.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <h2 className={styles.heading}>星表</h2>
+          {items.length === 0 ? <p className={styles.empty}>星圖上還沒有作品。成為第一位探索者吧。</p> : <Catalogue items={items} />}
         </section>
 
-        {keywords.length > 0 && (
-          <section className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2>星球關鍵字</h2>
-              <p className="label">Keywords — {keywords.length}</p>
-            </div>
-            <ul className={styles.keywords}>
-              {keywords.map((k) => (
-                <li key={k}>{k}</li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <section className={styles.section}>
+          <h2 className={styles.heading}>這是什麼</h2>
+          <p className={styles.about}>探索者計畫是媒傳系創意媒體專題設計的 studio。每位同學做一件非傳統類型的作品，一路做到 2027 年底，一般的網站和一般的遊戲都不算。</p>
+          <p className={styles.about}>星圖上每個光點是一件作品，作品走得越遠，光點越亮。作品本體放在同學自己的展示頁和 GitHub repo，這裡是全班的入口。</p>
+        </section>
 
-        <footer className={styles.footer}>
+        <section className={styles.section}>
+          <h2 className={styles.heading}>這學期的時程</h2>
+          <Timeline />
+        </section>
+
+        <footer className={styles.footer} id="join">
           <p>
-            想加入星系？閱讀 <a href={`${site.repoUrl}/blob/${site.branch}/docs/00-從零開始.md`}>從零開始</a>，用 Claude Code 建立你的城市並送出 Pull Request。
+            想加入星圖？閱讀 <a href={`${site.repoUrl}/blob/${site.branch}/docs/00-從零開始.md`}>從零開始</a>，用 Claude Code 把你的作品放上來，送出 Pull Request。
           </p>
-          <p className="label">
-            <a href={site.repoUrl}>GitHub repository</a>
+          <p>
+            <a href={site.repoUrl}>GitHub repository ↗</a>
           </p>
         </footer>
       </div>

@@ -1,4 +1,5 @@
-/* 主星的全域樣式（核心檔案）：low poly 多彩玩具感。城市頁面請用自己資料夾內的 *.module.css。 */
+/* 主星的全域樣式（核心檔案）。城市頁面請用自己資料夾內的 *.module.css。
+   --night-* 與 --mono 只給母 UI（夜空星圖）用；--ink、--paper 等是 @/kit 與城市頁面在用的色票，不要改成深色。 */
 :root {
   --ink: #2a2340;
   --ink-2: #5d5677;
@@ -17,10 +18,21 @@
   --chunky: 0 4px 0 var(--ink);
   --gutter: clamp(16px, 4vw, 48px);
   --font: 'Nunito', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --mono: 'Space Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', monospace;
+  --serif: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif; /* 只給母 UI 的大標題 */
+  --night-bg: #040816;
+  --night-panel: rgba(8, 14, 34, 0.72);
+  --night-panel-over: rgba(8, 14, 34, 0.92); /* 會壓在同學白底內容上的面板：穿梭機、導覽列 */
+  --night-line: rgba(150, 190, 255, 0.32);
+  --night-line-strong: rgba(170, 210, 255, 0.7);
+  --night-text: #e6efff;
+  --night-dim: #9db0cf;
+  --night-accent: #8fc4ff;
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
+html, body { margin: 0; padding: 0; background: var(--night-bg); color: var(--ink); }
+html { scrollbar-color: var(--night-line) var(--night-bg); }
 body {
   font-family: var(--font);
   font-size: 15px;

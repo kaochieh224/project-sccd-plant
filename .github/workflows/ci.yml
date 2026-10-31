@@ -51,8 +51,8 @@ jobs:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: npm run check-scope
 
-      - name: ② 公版規格檢查（city.json／proposal.json／引用規則）＋型別檢查
+      - name: ② 公版規格檢查（city.json／work.json／引用規則）＋型別檢查
         run: npm run check
 
-      - name: ③ 試著建置整顆星球
+      - name: ③ 試著建置整張星圖
         run: npm run build

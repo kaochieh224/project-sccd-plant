@@ -33,7 +33,7 @@ export default class CityErrorBoundary extends Component<{ name: string; childre
       >
         <p style={{ margin: 0, fontWeight: 900, fontSize: 20 }}>這座城市的頁面暫時壞掉了 🚧</p>
         <p style={{ margin: '8px 0 0', color: 'var(--ink-2)' }}>
-          {this.props.name} 的 Page.tsx 出現錯誤。市長：把下面這段訊息貼給 Claude Code，請它幫你修。
+          {this.props.name} 的 Page.tsx 出現錯誤。探索者：把下面這段訊息貼給 Claude Code，請它幫你修。
         </p>
         <pre style={{ margin: '12px 0 0', whiteSpace: 'pre-wrap', fontSize: 13, background: 'var(--cream)', padding: 12, borderRadius: 12 }}>
           {this.state.error.message}

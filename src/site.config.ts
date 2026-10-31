@@ -3,11 +3,12 @@
  * repoUrl 部署前請改成你們班的 GitHub repo 網址。
  */
 export const site = {
-  title: '善意星系',
-  titleEn: 'Goodwill Constellation',
-  subtitle: '一顆星球，每個人一座城市。搭上穿梭機，去看看大家為別人蓋了什麼。',
-  course: '實踐大學 媒體傳達設計學系｜Claude Code 協同開發',
+  title: '探索者計畫',
+  titleEn: 'Explorer Studio',
+  subtitle: '一人一件作品，走到 2027 年底。搭上穿梭機，到班上每件作品前走一趟。',
+  course: '實踐大學 媒體傳達設計學系｜創意媒體專題設計',
   hubName: '主星',
   repoUrl: 'https://github.com/kaochieh224/project-sccd-plant',
   branch: 'main',
+  pagesOrigin: 'https://kaochieh224.github.io',
 };

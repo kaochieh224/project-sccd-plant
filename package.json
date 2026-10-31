@@ -2,7 +2,7 @@
   "name": "project-sccd-plant",
   "version": "1.0.0",
   "private": true,
-  "description": "善意星系：一顆星球、每人一座城市，練習 Claude Code × GitHub 協同開發",
+  "description": "探索者計畫：全班作品總站，一張星圖、每人一件作品，練習 Claude Code × GitHub 協同開發",
   "scripts": {
     "registry": "node scripts/build-registry.mjs",
     "predev": "node scripts/build-registry.mjs",

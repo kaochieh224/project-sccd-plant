@@ -41,5 +41,5 @@ export function seeded(seed: number) {
   };
 }
 
-/** 主星的多彩色票（low poly 玩具感） */
+/** 預設城市的多彩色票（low poly 玩具感） */
 export const PALETTE = ['#ff5d8f', '#ffb627', '#3ec1d3', '#7bd389', '#9b5de5', '#ff8c42', '#4d96ff', '#f15bb5'];

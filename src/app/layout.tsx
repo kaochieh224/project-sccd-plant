@@ -8,12 +8,14 @@ import { site } from '@/site.config';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(site.pagesOrigin), // Next 會自己補上 basePath
   title: `${site.title} ${site.titleEn}`,
   description: site.subtitle,
+  openGraph: { title: `${site.title} ${site.titleEn}`, description: site.subtitle, type: 'website' },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const world = cities.map(({ meta, plot }) => ({ meta, plot }));
+  const world = cities.map(({ meta, plot, work }) => ({ meta, plot, stage: work.stage }));
   const dock = cities.map(({ meta: { id, name, color } }) => ({ id, name, color }));
   const scenes = Object.fromEntries(cities.map(({ meta }) => [meta.id, meta.scenes]));
   return (
@@ -21,14 +23,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@200&family=Nunito:wght@400;700;900&family=Space+Mono&display=swap" rel="stylesheet" />
       </head>
       <body>
         {/* 背景：3D 星球放在 layout，整個網站只建立一次；換頁時鏡頭飛行、不重新載入 */}
         <Universe cities={world} hubName={site.hubName} />
-        <div className="content">{children}</div>
-        {/* 母 UI：穿梭機面板與城市導航，換城市時持續存在 */}
+        {/* 母 UI：穿梭機面板排在內容前面，鍵盤按 Tab 才走得到；它和導航列換城市時持續存在 */}
         <ShuttleHud scenes={scenes} />
+        <div className="content">{children}</div>
         <SystemDock cities={dock} hubName={site.hubName} />
       </body>
     </html>

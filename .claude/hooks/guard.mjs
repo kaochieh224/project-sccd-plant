@@ -31,7 +31,7 @@ process.stdin.on('end', () => {
   if (m && !m[1].startsWith('_')) process.exit(0);
 
   process.stderr.write(
-    `已阻擋：${rel} 是善意星系的核心檔案（背景、母 UI 或規則）。目前是「城市模式」，只能修改 cities/<自己的GitHub帳號>/。\n` +
+    `已阻擋：${rel} 是探索者計畫總站的核心檔案（背景、母 UI 或規則）。目前是「地塊模式」，只能修改 cities/<自己的GitHub帳號>/。\n` +
       '如果使用者想改框架：請先確認已經有對應的 Issue，並在 core/ 開頭的 branch 上工作，' +
       '然後請使用者結束 Claude Code，以框架提案模式重新啟動：Mac 用 `SOLAR_CORE=1 claude`，Windows PowerShell 用 `$env:SOLAR_CORE="1"; claude`。流程見 docs/03-框架提案.md。',
   );

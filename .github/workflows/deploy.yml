@@ -1,5 +1,5 @@
 # 合併到 main 之後，自動部署到 GitHub Pages
-name: 部署星系
+name: 部署總站
 
 on:
   push:

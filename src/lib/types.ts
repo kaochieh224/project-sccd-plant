@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react';
 
 /**
- * 城市的「公版框架」：這些欄位由主星讀取，用來把你的城市放上星球、
- * 讓穿梭機知道要停在哪些站點，並彙整全班的善意企劃。
+ * 作品的「公版框架」：這些欄位由主星讀取，用來把你的作品放上星圖、
+ * 讓穿梭機知道要停在哪些站點，並彙整全班的作品卡。
  * 規則由 scripts/build-registry.mjs 驗證；改這裡＝改全班的規格，要走框架提案。
  */
 
@@ -27,13 +27,13 @@ export interface Scene {
 export interface CityMeta {
   /** 必須等於資料夾名稱，也就是你的 GitHub 帳號（小寫） */
   id: string;
-  /** 城市名稱，最多 16 字 */
+  /** 作品名稱，最多 16 字 */
   name: string;
-  /** 市長（你的名字） */
+  /** 探索者（你的名字） */
   owner: string;
-  /** 善意企劃一句話：你想為誰、做什麼好事？最多 40 字 */
-  goodwill: string;
-  /** 城市主色，6 碼 hex */
+  /** 一句話作品描述：觀眾在這件作品前會做什麼？最多 40 字 */
+  oneLiner: string;
+  /** 作品主色，6 碼 hex */
   color: string;
   /** 城市規模 */
   scale: CityScale;
@@ -43,23 +43,30 @@ export interface CityMeta {
   scenes: Scene[];
 }
 
-/** 企劃版面（proposal.json）：所有人同一套欄位 */
-export type ProposalStatus = '構想' | '原型' | '測試' | '完成';
-export interface Proposal {
-  /** 企劃名稱，最多 24 字 */
-  title: string;
-  /** 想幫助的對象，最多 40 字 */
+/** 作品卡（work.json）：所有人同一套欄位，對應探索者計畫的非傳統三問與四個階段 */
+export type WorkDirection = '技術' | '議題' | '美學';
+export type WorkStage = '前置期' | '做到可玩' | '做到展出' | '送出去' | '收成';
+export interface Work {
+  /** 一句話作品描述的英文版（選填），最多 120 字元 */
+  oneLinerEn?: string;
+  /** 作品方向 */
+  direction: WorkDirection;
+  /** 觀眾是誰，最多 40 字 */
   audience: string;
-  /** 觀察到的問題，最多 120 字 */
-  problem: string;
-  /** 我的行動，最多 120 字 */
-  action: string;
-  /** 期待的改變，最多 120 字 */
-  impact: string;
-  /** 執行步驟，1–3 步，每步最多 40 字 */
-  steps: string[];
-  /** 目前進度 */
-  status: ProposalStatus;
+  /** 主攻賽事／類別，最多 40 字 */
+  competition: string;
+  /** 非傳統三問之一：觀眾怎麼參與，最多 120 字 */
+  participation: string;
+  /** 非傳統三問之二：架構差在哪裡，最多 120 字 */
+  architecture: string;
+  /** 非傳統三問之三：拿掉哪個部分就變回傳統，最多 120 字 */
+  essence: string;
+  /** 目前階段 */
+  stage: WorkStage;
+  /** 作品展示頁網址（選填，W4 起建立），必須是 https:// */
+  showcaseUrl?: string;
+  /** 作品的公開 GitHub repo（選填），必須是 https:// */
+  repoUrl?: string;
 }
 
 /**
@@ -87,7 +94,7 @@ export type CityFactory = (ctx: CityContext) => CityHandle;
 
 export interface CityEntry {
   meta: CityMeta;
-  proposal: Proposal;
+  work: Work;
   /** 星球上的地塊編號（由 GitHub 帳號計算，固定、不可自選） */
   plot: number;
   Page: ComponentType<PageProps>;
@@ -96,6 +103,6 @@ export interface CityEntry {
 /** 主星傳給你 Page.tsx 的資料 */
 export interface PageProps {
   meta: CityMeta;
-  proposal: Proposal;
+  work: Work;
   plot: number;
 }
